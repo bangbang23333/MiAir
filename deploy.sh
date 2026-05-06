@@ -101,13 +101,10 @@ echo -e "${GREEN}[2/8] 获取局域网 IP...${NC}"
 get_lan_ip() {
     local ip
 
-    # 1. 获取默认出网使用的本机源 IP (支持大部分 Linux)
-    ip=$(ip -4 route get 8.8.8.8 2>/dev/null | grep -oP 'src \K\S+' | head -n 1)
+    # 1. 尝试使用 awk 解析默认出网 IP (兼容绝大多数环境，包括 BusyBox/OpenWrt)
+    ip=$(ip -4 route get 8.8.8.8 2>/dev/null | awk '/src/ {for (i=1; i<=NF; i++) if ($i == "src") {print $(i+1); exit}}')
     [ -n "$ip" ] && echo "$ip" && return
 
-    # 2. 兼容不支持 grep -P 的系统 (如 OpenWRT)
-    ip=$(ip -4 route get 8.8.8.8 2>/dev/null | awk '/src/ {for (i=1; i<=NF; i++) if ($i == "src") print $(i+1)}')
-    [ -n "$ip" ] && echo "$ip" && return
 
     # 3. 没有默认路由时，兜底取第一个非 lo/docker/tailscale/veth/br-/wg/tun 的 IPv4
     ip=$(ip -o -4 addr show scope global 2>/dev/null | awk '$2 !~ /^(lo|docker[0-9]*|tailscale[0-9]*|veth.*|br-[a-f0-9]+|wg[0-9]*|tun[0-9]*|tap[0-9]*)$/ {split($4, a, "/"); print a[1]; exit}')
