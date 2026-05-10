@@ -17,7 +17,7 @@ class Speaker:
     name: str = ""
     dlna_name: str = ""
     udn: str = ""
-    use_music_api: bool = False
+    use_music_api: bool = True
     enabled: bool = True
 
     # 不支持无损格式的音箱型号列表

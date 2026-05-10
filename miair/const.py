@@ -50,7 +50,7 @@ NEED_USE_PLAY_MUSIC_API = [
 ]
 
 # 默认 audio_id (用于 play_by_music_url)
-DEFAULT_AUDIO_ID = "1582971365183456177"
+DEFAULT_AUDIO_ID = " "
 
 # 支持的协议信息 (ConnectionManager GetProtocolInfo) - 仅音频
 SUPPORTED_PROTOCOLS = (
