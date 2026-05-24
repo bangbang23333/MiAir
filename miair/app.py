@@ -53,6 +53,37 @@ class MiAir:
             log.warning(f"获取设备列表失败: {e}")
             return []
 
+    async def _periodic_device_check(self):
+        """每分钟自主检查设备列表，如果为空且启动超过5分钟，则触发重启"""
+        import time
+        start_time = time.time()
+        while True:
+            await asyncio.sleep(60)
+            
+            # 如果没有开启自动重启，不执行此逻辑
+            if not self.config.auto_restart:
+                continue
+
+            # 如果没有配置账号密码，不检查
+            if not self.config.account and not self.config.cookie:
+                continue
+            
+            uptime = time.time() - start_time
+            if uptime < 300:
+                continue
+
+            try:
+                devices = await self.get_all_devices()
+                if not devices:
+                    log.error("定期检查发现设备列表突然为空，判定为故障，触发自动重启以恢复服务...")
+                    from miair.web.api import _restart_process
+                    try:
+                        asyncio.get_running_loop().call_soon(_restart_process)
+                    except RuntimeError:
+                        _restart_process()
+            except Exception as e:
+                log.warning(f"定期检查设备列表异常: {e}")
+
     async def start(self):
         """启动所有服务"""
         self._setup_logging()
@@ -79,6 +110,8 @@ class MiAir:
             elif not self.config.mi_did:
                 log.info("未选择音箱设备，请打开 Web 管理界面选择设备")
             log.info(f"请访问 http://{self.config.hostname}:{self.config.web_port} 进行配置")
+
+        self._device_check_task = asyncio.create_task(self._periodic_device_check())
 
     async def _start_dlna_services(self):
         """启动 DLNA 相关服务 (登录、初始化音箱、SSDP、HTTP)"""
@@ -206,6 +239,9 @@ class MiAir:
     async def stop(self):
         """停止所有服务"""
         log.info("MiAir 正在关闭...")
+
+        if hasattr(self, '_device_check_task') and self._device_check_task:
+            self._device_check_task.cancel()
 
         await self._stop_dlna_services()
         if self.airplay_manager:

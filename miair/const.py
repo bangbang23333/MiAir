@@ -1,6 +1,6 @@
 """MiAir 常量定义"""
 
-VERSION = "0.5.4-alpha"
+VERSION = "0.7.4-alpha"
 
 
 # SSDP 相关
@@ -48,6 +48,7 @@ NEED_USE_PLAY_MUSIC_API = [
     "OH2P",
     "X6A",
     "L15A",
+    "L07A",
 ]
 
 # 默认 audio_id (用于 play_by_music_url)

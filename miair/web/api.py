@@ -117,8 +117,12 @@ def create_web_app(config: Config, app_instance) -> web.Application:
                 "dlna_name": speaker.get_dlna_name(),
                 "hardware": speaker.hardware,
                 "enabled": speaker.enabled,
+                "compatibility_mode": speaker.is_compatibility_mode(),
             }
         data["speakers"] = speakers_info
+
+        from miair.const import NEED_USE_PLAY_MUSIC_API
+        data["need_use_play_music_api"] = NEED_USE_PLAY_MUSIC_API
 
         if need_device_list:
             device_list = await app_instance.get_all_devices()
@@ -164,12 +168,14 @@ def create_web_app(config: Config, app_instance) -> web.Application:
         if "auto_restart" in data:
             config.auto_restart = data["auto_restart"]
 
-        # 更新 speaker 名称
+        # 更新 speaker 名称和兼容模式
         if "speakers" in data:
             for did, speaker_data in data["speakers"].items():
                 speaker = config.get_speaker(did)
                 if "dlna_name" in speaker_data:
                     speaker.dlna_name = speaker_data["dlna_name"]
+                if "compatibility_mode" in speaker_data:
+                    speaker.compatibility_mode = speaker_data["compatibility_mode"]
 
         config.save()
 

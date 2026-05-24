@@ -45,10 +45,9 @@ class SpeakerController:
         return self.speaker.did
 
     def _should_use_music_api(self) -> bool:
-        return (
-            self.speaker.use_music_api
-            or self.speaker.hardware in NEED_USE_PLAY_MUSIC_API
-        )
+        if self.speaker.is_compatibility_mode():
+            return False
+        return True
 
     async def play_url(self, url: str) -> bool:
         """让音箱播放指定 URL"""

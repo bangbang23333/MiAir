@@ -554,6 +554,32 @@
             font-size: 12px;
             color: var(--text-secondary);
             margin-top: 2px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .compatibility-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            margin-right: 8px;
+        }
+
+        @media (max-width: 480px) {
+            .device-meta {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 4px;
+            }
+
+            .compatibility-label {
+                margin-top: 2px;
+                margin-right: 0;
+            }
         }
 
         /* Speaker/Renderer Card */
@@ -1042,7 +1068,9 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         .update-error {
@@ -1221,7 +1249,7 @@
 
         <div style="text-align: center; margin-top: 40px; color: var(--text-muted); font-size: 12px;">
             <a href="https://github.com/KiriChen-Wind/MiAir" class="footer-link" target="_blank">MiAir</a>
-            <span id="version-text">V0.5.4-alpha</span> by
+            <span id="version-text">V0.7.4-alpha</span> by
             <a href="https://github.com/KiriChen-Wind" class="footer-link" target="_blank">KiriChen</a>
         </div>
     </div>
@@ -1311,6 +1339,7 @@
         let _initialFormValues = null;
         let _initialSelectedDids = null;
         let _initialDeviceNames = null;
+        let _initialCompatibilityModes = null;
 
         document.addEventListener('DOMContentLoaded', init);
 
@@ -1433,7 +1462,7 @@
                     badge.className = 'update-badge';
                     badge.href = 'javascript:void(0)';
                     badge.textContent = '发现新版本';
-                    badge.onclick = function() { showUpdateModal(); };
+                    badge.onclick = function () { showUpdateModal(); };
                     updateLink.innerHTML = '';
                     updateLink.appendChild(badge);
                 }
@@ -1706,6 +1735,9 @@
                 const info = getDeviceInfo(dev.hardware);
                 const displayName = (currentSetting.speakers && currentSetting.speakers[did])
                     ? currentSetting.speakers[did].dlna_name : dev.name;
+                const inNeedList = currentSetting.need_use_play_music_api && currentSetting.need_use_play_music_api.some(model => dev.hardware.includes(model));
+                const isCompatibilityMode = (currentSetting.speakers && currentSetting.speakers[did] && currentSetting.speakers[did].compatibility_mode !== null)
+                    ? !!currentSetting.speakers[did].compatibility_mode : !inNeedList;
 
                 html += `
                 <div class="device-item ${isSelected ? 'selected' : ''}" onclick="toggleDevice(this, '${did}')">
@@ -1713,7 +1745,13 @@
                     <div class="device-body">
                         <input type="text" class="device-name-input" value="${displayName}" 
                             onclick="event.stopPropagation()" onblur="renameDevice('${did}', this.value)">
-                        <div class="device-meta">${info.model} · ${dev.hardware}</div>
+                        <div class="device-meta">
+                            <span>${info.model} · ${dev.hardware}</span>
+                            <label class="compatibility-label" onclick="event.stopPropagation()">
+                                <input type="checkbox" class="compatibility-checkbox" data-did="${did}" ${isCompatibilityMode ? 'checked' : ''}>
+                                <span style="font-size: 11px; color: var(--text-secondary);">兼容模式</span>
+                            </label>
+                        </div>
                     </div>
                     <div class="device-checkbox">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${isSelected ? 'var(--accent)' : 'var(--text-muted)'}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
@@ -1728,10 +1766,14 @@
             // 记录初始选中状态和设备名，用于变更检测
             _initialSelectedDids = selectedList.filter(Boolean).sort().join(',');
             _initialDeviceNames = {};
+            _initialCompatibilityModes = {};
             devices.forEach(dev => {
                 const did = dev.miotDID;
                 _initialDeviceNames[did] = (currentSetting.speakers && currentSetting.speakers[did])
                     ? currentSetting.speakers[did].dlna_name : dev.name;
+                const inNeedList = currentSetting.need_use_play_music_api && currentSetting.need_use_play_music_api.some(model => dev.hardware.includes(model));
+                _initialCompatibilityModes[did] = (currentSetting.speakers && currentSetting.speakers[did] && currentSetting.speakers[did].compatibility_mode !== null)
+                    ? !!currentSetting.speakers[did].compatibility_mode : !inNeedList;
             });
         }
 
@@ -1750,7 +1792,7 @@
             const selected = Array.from(document.querySelectorAll('.device-item.selected'))
                 .map(item => item.querySelector('input').getAttribute('onblur').match(/'([^']+)'/)[1]);
 
-            // 检查是否有变更（选中列表 + 设备名称）
+            // 检查是否有变更（选中列表 + 设备名称 + 兼容模式）
             const currentDids = selected.sort().join(',');
             let namesChanged = false;
             if (_initialDeviceNames) {
@@ -1761,17 +1803,43 @@
                     }
                 });
             }
-            if (!namesChanged && _initialSelectedDids !== null && currentDids === _initialSelectedDids) {
+
+            let compatibilityChanged = false;
+            if (_initialCompatibilityModes) {
+                document.querySelectorAll('.compatibility-checkbox').forEach(chk => {
+                    const did = chk.getAttribute('data-did');
+                    if (_initialCompatibilityModes[did] !== undefined && chk.checked !== _initialCompatibilityModes[did]) {
+                        compatibilityChanged = true;
+                    }
+                });
+            }
+
+            if (!namesChanged && !compatibilityChanged && _initialSelectedDids !== null && currentDids === _initialSelectedDids) {
                 showTip(document.getElementById('tip-save'), '没有变更的设置项', 'error');
                 return;
             }
+
+            const speakersData = {};
+            document.querySelectorAll('.device-name-input').forEach(input => {
+                const did = input.getAttribute('onblur').match(/'([^']+)'/)[1];
+                const dlnaName = input.value;
+                const compatibilityCheckbox = document.querySelector(`.compatibility-checkbox[data-did="${did}"]`);
+                const compatibilityMode = compatibilityCheckbox ? compatibilityCheckbox.checked : false;
+                speakersData[did] = {
+                    dlna_name: dlnaName,
+                    compatibility_mode: compatibilityMode
+                };
+            });
 
             showLoading(btn, true, '正在保存');
             try {
                 await fetch('/api/setting', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ mi_did: selected.join(',') }),
+                    body: JSON.stringify({
+                        mi_did: selected.join(','),
+                        speakers: speakersData
+                    }),
                 });
                 showLoading(btn, true, '正在同步');
                 setTimeout(() => location.reload(), 3000);

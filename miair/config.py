@@ -18,10 +18,21 @@ class Speaker:
     dlna_name: str = ""
     udn: str = ""
     use_music_api: bool = False
+    compatibility_mode: bool | None = None
     enabled: bool = True
 
     # 不支持无损格式的音箱型号列表
     _NON_LOSSLESS_HARDWARE = {"L05B", "L05C", "LX06", "L16A"}
+
+    def is_compatibility_mode(self) -> bool:
+        if self.compatibility_mode is not None:
+            return self.compatibility_mode
+        # 默认：如果 hardware 在 NEED_USE_PLAY_MUSIC_API 中，则为 False，否则为 True
+        from miair.const import NEED_USE_PLAY_MUSIC_API
+        for model in NEED_USE_PLAY_MUSIC_API:
+            if model in self.hardware:
+                return False
+        return True
 
     def get_dlna_name(self) -> str:
         return self.dlna_name or self.name or f"XiaoAI-{self.did}"
