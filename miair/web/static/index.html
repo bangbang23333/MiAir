@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MiAir</title>
     <meta name="color-scheme" content="light dark">
-    <link rel="icon" type="image/png" href="/static/weblogo.png">
+    <link rel="icon" type="image/png" href="./static/weblogo.png">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
@@ -1359,7 +1359,7 @@
 
         async function fetchSetting(withDeviceList) {
             try {
-                const url = withDeviceList ? '/api/setting?need_device_list=true' : '/api/setting';
+                const url = withDeviceList ? './api/setting?need_device_list=true' : './api/setting';
                 const resp = await fetch(url);
                 const data = await resp.json();
                 currentSetting = data;
@@ -1542,7 +1542,7 @@
             errorDiv.style.display = 'none';
 
             try {
-                const resp = await fetch('/api/update', { method: 'POST' });
+                const resp = await fetch('./api/update', { method: 'POST' });
                 const data = await resp.json();
 
                 if (data.ok) {
@@ -1557,7 +1557,7 @@
                         await new Promise(r => setTimeout(r, interval));
                         waited += interval;
                         try {
-                            const r = await fetch('/api/status', { signal: AbortSignal.timeout(3000) });
+                            const r = await fetch('./api/status', { signal: AbortSignal.timeout(3000) });
                             if (r.ok) {
                                 // 服务已重启，刷新页面
                                 window.location.reload();
@@ -1742,7 +1742,7 @@
 
                 html += `
                 <div class="device-item ${isSelected ? 'selected' : ''}" onclick="toggleDevice(this, '${did}')">
-                    <img src="/static/devicespic/${info.image}" class="device-img" onerror="this.src='/static/devicespic/L05B.webp'">
+                    <img src="./static/devicespic/${info.image}" class="device-img" onerror="this.src='./static/devicespic/L05B.webp'">
                     <div class="device-body">
                         <input type="text" class="device-name-input" value="${displayName}" 
                             onclick="event.stopPropagation()" onblur="renameDevice('${did}', this.value)">
@@ -1834,7 +1834,7 @@
 
             showLoading(btn, true, '正在保存');
             try {
-                await fetch('/api/setting', {
+                await fetch('./api/setting', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -1863,7 +1863,7 @@
 
             showLoading(btn, true, '正在保存');
             try {
-                await fetch('/api/setting', {
+                await fetch('./api/setting', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ cookie: `userId=${uid}; passToken=${token}` }),
@@ -1900,7 +1900,7 @@
 
             showLoading(btn, true, '正在保存');
             try {
-                await fetch('/api/setting', {
+                await fetch('./api/setting', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(data),
@@ -1916,7 +1916,7 @@
         async function renameDevice(did, name) {
             if (!name) return;
             try {
-                await fetch(`/api/speakers/${did}/rename`, {
+                await fetch(`./api/speakers/${did}/rename`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ dlna_name: name }),
@@ -1926,7 +1926,7 @@
 
         async function fetchRenderers() {
             try {
-                const resp = await fetch('/api/speakers');
+                const resp = await fetch('./api/speakers');
                 const speakers = await resp.json();
                 renderRenderers(speakers);
             } catch (e) { }
